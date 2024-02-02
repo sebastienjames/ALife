@@ -1,6 +1,9 @@
 import mujoco
 import mujoco_viewer
+import numpy as np
+import time
 
+PI = np.pi
 
 class Node:
     def __init__(self, bodies, joints, children, name):
@@ -10,7 +13,10 @@ class Node:
         self.name = name
 
     def __str__(self) -> str:
-        string = ""
+        string = """<mujoco>
+              <worldbody>
+              <light diffuse=".5 .5 .5" pos="0 0 2" dir="0 -1 0"/>
+              <geom type="plane" size="10 10 0.1" rgba="0 0 0.9 1"/>"""
 
         body, j = self.traverse()
 
@@ -60,8 +66,8 @@ class Node:
     def get_joints(self):
         j = []
 
-        for joint in self.joints:
-            j.append(joint.traverse(self.name))
+        for name_ext, joint in enumerate(self.joints):
+            j.append(joint.traverse(self.name + "v" + str(name_ext)))
 
         return j
 
@@ -79,15 +85,16 @@ class Body:
         return string
 
 class Joint:
-    def __init__(self, kind, axis=[0, 1, 0], pos=[0, 0, 0], gear=0) -> None:
+    def __init__(self, kind, axis=[0, 1, 0], pos=[0, 0, 0], gear=1, ctrlrange=[-1, 1]) -> None:
         self.kind = kind
         self.axis = axis
         self.pos = pos
         self.gear = gear
+        self.ctrlrange = list(map(lambda x: x * self.gear, ctrlrange))
     
     def traverse(self, name):
         joint = "<joint name = \"j" + name + "\" type = \"" + self.kind + "\" axis = \"" + " ".join(map(str, self.axis)) + "\" pos = \"" + " ".join(map(str, self.pos)) + "\"/>\n"
-        motor = "<motor name = \"m" + name + "\" joint = \"j" + name + "\" gear = \"" + str(self.gear) + "\"/>\n"
+        motor = "<motor name = \"m" + name + "\" joint = \"j" + name + "\" gear = \"" + str(self.gear) + "\" ctrllimited = \"true\" ctrlrange = \"" + " ".join(map(str, self.ctrlrange)) + "\"/>\n"
         return (joint, motor)
 
 
@@ -116,7 +123,7 @@ figure = Node(
                 "hinge",
                 [1, 0, 0],
                 [0, -0.2, -0.1],
-                20
+                10
             )
         ],
         [],
@@ -135,7 +142,13 @@ figure = Node(
                 "hinge",
                 [1, 0, 0],
                 [0, 0.2, -0.1],
-                20
+                10
+            ),
+            Joint(
+                "hinge",
+                [0, 0, 1],
+                [0, 0.2, -0.1],
+                10
             )
         ],
         [],
@@ -145,14 +158,10 @@ figure = Node(
 )
 
 
-xml = """<mujoco>
-              <worldbody>
-              <light diffuse=".5 .5 .5" pos="0 0 2" dir="0 -1 0"/>
-              <geom type="plane" size="10 10 0.1" rgba="0 0 0.9 1"/>"""
 
-xml += str(figure)
+xml = str(figure)
 
-# print(xml)
+print(xml)
 
 model = mujoco.MjModel.from_xml_string(xml)
 data = mujoco.MjData(model)
@@ -163,23 +172,22 @@ viewer = mujoco_viewer.MujocoViewer(model, data)
 #Get array of actuators
 actuators = model.nu
 
-print(data.ctrl)
+# print(data.ctrl)
 
-print(actuators)
+# print(actuators)
 
-print()
+# for i in range(400):
+#     mujoco.mj_step(model, data)
 
-for i in range(400):
-    mujoco.mj_step(model, data)
-
+time.sleep(1)
 
 for i in range(10000):
     if viewer.is_alive:
 
-        if i % 100 == 0:
+        if i % 300 == 0:
             data.ctrl[:actuators] = [5]
             print(data.ctrl)
-        elif i % 100 == 50:
+        elif i % 300 == 150:
             data.ctrl[:actuators] = [-5]
         print(data.ctrl)
         mujoco.mj_step(model, data)
