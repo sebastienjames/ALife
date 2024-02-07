@@ -29,6 +29,8 @@ Node.recursions are unused (for now)
 
 Clock-based movement
 
+Can overlap and cross into itself
+
 """
 
 # class Node:
