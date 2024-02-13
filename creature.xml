@@ -1,0 +1,23 @@
+<mujoco>
+              <worldbody>
+              <light diffuse=".5 .5 .5" pos="0 0 2" dir="0 -1 0"/>
+              <geom type="plane" size="10 10 0.1" rgba="0 0 0.9 1"/><body name = "base_new_new_new_new_new_new_new_new" pos = "0.016928364203890996 0.12036611264002164 1.4213741912270639">
+<geom type = "box" size = "0.13593434053603104 0.22578123371615103 0.23518156331343473" rgba = "0.3 0.3 0.3 1"/><joint name = "jbase_new_new_new_new_new_new_new_newv0" type = "free" axis = "0 1 0" pos = "0 0 0"/>
+<body name = "limb_base_0_new_new_new_new_new_new_new_new" pos = "0.015335326177553227 -0.2643105261161495 0.6341806759322197">
+<geom type = "box" size = "0.08124343663359679 0.09208238516715786 0.29831942405993805" rgba = "0.8216077866331344 0.3750774589141067 0.03591165146833175 1"/><joint name = "jlimb_base_0_new_new_new_new_new_new_new_newv0" type = "hinge" axis = "1 0 0" pos = "-0.011666553483939704 -0.03385921584557391 -0.09339179990194674"/>
+<body name = "limb_limb_base_0_0_new_new_new_new_new_new_new_new" pos = "-0.06272753805111 -0.0631340228304898 0.5968164390419943">
+<geom type = "box" size = "0.10717832713707445 0.2023911031870269 0.2626914752612934" rgba = "0.9023231840012796 0.6655780475217417 0.6414392030028385 1"/><joint name = "jlimb_limb_base_0_0_new_new_new_new_new_new_new_newv0" type = "hinge" axis = "0 0 1" pos = "0.04327847901125578 -0.06864699291145233 -0.1018515566109557"/>
+<body name = "limb_limb_limb_base_0_0_1_new_new_new_new_new_new_new_new" pos = "0.039596068504709446 0.06765688754577484 0.7038711741207816">
+<geom type = "box" size = "0.0832710210189608 0.1099466199593377 0.32924122187034194" rgba = "0.9181078821827825 0.9993946903240154 0.08020373025159189 1"/><joint name = "jlimb_limb_limb_base_0_0_1_new_new_new_new_new_new_new_newv0" type = "hinge" axis = "0 0 1" pos = "0.020408494783274292 0.05351063466142846 -0.08950958372457866"/>
+</body>
+</body>
+</body>
+</body>
+</worldbody>
+<actuator>
+<motor name = "mbase_new_new_new_new_new_new_new_newv0" joint = "jbase_new_new_new_new_new_new_new_newv0" gear = "1" ctrllimited = "true" ctrlrange = "-1 1"/>
+<motor name = "mlimb_base_0_new_new_new_new_new_new_new_newv0" joint = "jlimb_base_0_new_new_new_new_new_new_new_newv0" gear = "1" ctrllimited = "true" ctrlrange = "-1.0 1.0"/>
+<motor name = "mlimb_limb_base_0_0_new_new_new_new_new_new_new_newv0" joint = "jlimb_limb_base_0_0_new_new_new_new_new_new_new_newv0" gear = "2" ctrllimited = "true" ctrlrange = "-2.0 2.0"/>
+<motor name = "mlimb_limb_limb_base_0_0_1_new_new_new_new_new_new_new_newv0" joint = "jlimb_limb_limb_base_0_0_1_new_new_new_new_new_new_new_newv0" gear = "2" ctrllimited = "true" ctrlrange = "-2.0 2.0"/>
+</actuator>
+</mujoco>

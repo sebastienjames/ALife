@@ -6,6 +6,8 @@ import random
 
 PI = np.pi
 MAX_SEGMENT_LENGTH = 0.3
+MUTATION_SCALE = 0.1
+NUM_SIMULATION_ITERATIONS = 3000
 
 DIRECTIONS = [
     [0, 0, 1],
@@ -14,9 +16,15 @@ DIRECTIONS = [
 ]
 
 def add_elements(a, b):
-    for e in b:
-        a += e
-    
+    for i in range(len(a)):
+        a[i] += b[i]
+
+def is_zero(l):
+    for i in range(len(l)):
+        if l[i] < 0.01:
+            return True
+    return False
+
 
 """
 
@@ -32,67 +40,6 @@ Clock-based movement
 Can overlap and cross into itself
 
 """
-
-# class Node:
-#     def __init__(self, data, children, recursions):
-#         self.data = data
-#         self.children = children
-#         self.recursions = recursions
-    
-#     def add_child(self, other, times = -1):
-#         # -1 if infinite (only for non-recursive nodes)
-#         # otherwise times is for the number of times this child should be recursed on
-#         if other == self:
-#             if times == -1:
-#                 raise RecursionError
-#             else:
-#                 child = self.copy()
-#                 for x in range(len(child.children)):
-#                     if child.children[x] == self:
-#                         print("ME")
-#                         child.children[x] == child
-#                         child.recursions[x] -= 1 # Check
-
-#                 if times > 1:
-#                     child.add_child(child, times - 1)
-
-#                 self.children.append(child)
-#                 self.recursions.append(times)
-#         else:
-#             self.children.append(other)
-#             self.recursions.append(times)
-            
-
-#     def debug(self):
-#         print("-----------------")
-#         print(id(self))
-#         print()
-#         for pointer, limit in zip(self.children, self.recursions):
-#             print(id(pointer), limit)
-#         print("-----------------")
-
-
-#     def copy(self):
-#         return Node(self.data, self.children[:], self.recursions[:])
-
-#     def expand(self, tab):
-#         print(tab * "  " + self.data) # Visted
-#         for i in range(len(self.children)):
-#             if self.recursions[i] != 0:
-#                 self.recursions[i] -= 1
-#                 self.children[i].expand(tab + 1)
-
-
-
-# root = Node("ROOT", [], [])
-# child = Node("CHILD", [], [])
-# child2 = Node("CHILD2", [], [])
-# root.add_child(child)
-# root.add_child(root, 2)
-# root.add_child(root, 2)
-
-
-# root.expand(0)
 
 class Node:
     def __init__(self, bodies, joints, children, name, recursions):
@@ -196,6 +143,66 @@ class Node:
                 
 
         return Node(newbodies, newjoints, self.children[:], self.name + "_new", self.recursions[:])
+    
+    def is_valid_joint(self, joint):
+        xmax = self.bodies[0].size[0] / 2
+        xmin = -xmax
+
+        zmax = self.bodies[0].size[1] / 2
+        zmin = -zmax
+
+        ymax = self.bodies[0].size[2] / 2
+        ymin = -ymax
+
+        if joint.pos[0] < xmin:
+            joint.pos[0] = xmin
+        if joint.pos[0] > xmax:
+            joint.pos[0] = xmax
+        if joint.pos[1] < zmin:
+            joint.pos[1] = zmin
+        if joint.pos[1] > zmax:
+            joint.pos[1] = zmax
+        if joint.pos[2] < ymin:
+            joint.pos[2] = ymin
+        if joint.pos[2] > ymax:
+            joint.pos[2] = ymax
+
+        return joint
+
+
+    def mutate(self):
+        newbodies = []
+        
+        for body in self.bodies:
+            newbody = body.mutate()
+            if newbody:
+                newbodies.append(newbody)
+            else:
+                # The body has atrophied, so remove all children
+                # print(self.name)
+                return None
+
+        newjoints = []
+
+        for joint in self.joints:
+            newjoint = joint.mutate()
+            if newjoint:
+
+                newjoint = self.is_valid_joint(newjoint)
+
+                newjoints.append(newjoint)
+            else:
+                newjoints.append(joint)
+
+        newchildren = []
+
+        for child in self.children:
+            newchild = child.mutate()
+            if newchild:
+                newchildren.append(newchild)
+
+
+        return Node(newbodies, newjoints, newchildren, self.name + "_new", self.recursions[:])
 
     def expand(self, tab):
         print(tab * "  " + self.data) # Visted
@@ -205,18 +212,6 @@ class Node:
                 self.children[i].expand(tab + 1)
     
 
-
-
-    ##################################
-    def create_node(self, template):
-        # template: -1 is self, other positive is the position in children
-        if template == -1:
-
-            self.children.append(Node(self.bodies, self.joints, self.children, self.name + "_new"))
-
-        elif template >= 0:
-            Node()
-    
 
 class Body:
     def __init__(self, pos, size, rbga):
@@ -231,12 +226,21 @@ class Body:
         string += "<geom type = \"" + self.kind + "\" size = \"" + " ".join(map(str, self.size)) + "\" rgba = \"" + " ".join(map(str, self.rgba)) + "\"/>"
         return string
     
-    def copy(self, offset):
+    def copy(self, offset = [0, 0, 0]):
         newpos = list(self.pos)
         for i in range(2):
             newpos[i] += offset[i]
 
-        return Body(newpos, self.size, self.rgba)
+        return Body(newpos, self.size[:], self.rgba)
+    
+    def mutate(self):
+        newbody = self.copy()
+
+        add_elements(newbody.pos, [(random.random() - 0.5) * MUTATION_SCALE for i in range(3)])
+        add_elements(newbody.size, [(random.random() - 0.5) * MUTATION_SCALE for i in range(3)])
+    
+        if not is_zero(newbody.size):
+            return newbody
 
 class Joint:
     def __init__(self, kind, axis=[0, 1, 0], pos=[0, 0, 0], gear=1, ctrlrange=[-1, 1]) -> None:
@@ -255,6 +259,16 @@ class Joint:
             oldctrl = list(map(lambda x: x / self.gear, self.ctrlrange))
             
             return Joint(self.kind, self.axis, newpos, self.gear, oldctrl)
+        
+    def mutate(self):
+        newjoint = self.copy()
+        if newjoint:
+            add_elements(newjoint.pos, [(random.random() - 0.5) * MUTATION_SCALE for i in range(3)])
+
+            return newjoint
+        return self
+
+    
     
     def traverse(self, name):
         joint = "<joint name = \"j" + name + "\" type = \"" + self.kind + "\" axis = \"" + " ".join(map(str, self.axis)) + "\" pos = \"" + " ".join(map(str, self.pos)) + "\"/>\n"
@@ -263,85 +277,16 @@ class Joint:
 
 
 
+def get_pos(pos):
+    return np.max(np.apply_along_axis(np.linalg.norm, 1, pos))
+        
 
-
-
-figure = Node(
-    [Body(
-        [0, 0, 0.3],
-        [0.1, 0.1, 0.1],
-        [1, 0, 0, 1]
-    )],
-    [
-        Joint(
-            "free"
-        )
-    ],
-    [Node(
-        [
-            Body(
-                [0, 0.3, 0.2],
-                [0.1, 0.2, 0.1],
-                [0, 1, 0, 1]
-            )
-        ],
-        [
-            Joint(
-                "hinge",
-                [1, 0, 0],
-                [0, -0.2, -0.1],
-                10
-            )
-        ],
-        [],
-        "foot",
-        []
-    ),
-    Node(
-        [
-            Body(
-                [0, -0.3, 0.2],
-                [0.1, 0.2, 0.1],
-                [0, 1, 0, 1]
-            )
-        ],
-        [
-            Joint(
-                "hinge",
-                [1, 0, 0],
-                [0, 0.2, -0.1],
-                10
-            ),
-            Joint(
-                "hinge",
-                [0, 0, 1],
-                [0, 0.2, -0.1],
-                10
-            )
-        ],
-        [],
-        "foot2",[]
-    )],
-    "head",
-    []
-)
-
-body1 = Body([0, 0, 0.1], [0.1, 0.1, 0.1], [1, 0, 0, 1])
-body2 = Body([0, 0, 0.2], [0.1, 0.1, 0.1], [0, 1, 0, 1])
-
-test = Node([body1], [Joint("free")], [], "test", [])
-
-# test.add_child(Node([body2], [], [], "sec", []))
-
-test.add_child(test, 1)
-
-
-
-def render(obj):
+def render(obj, vis = False):
 
     xml = str(obj)
 
-    # print(xml)
+    with open("creature.xml", "w+") as f:
+        f.write(xml)
 
     model = mujoco.MjModel.from_xml_string(xml)
     data = mujoco.MjData(model)
@@ -356,52 +301,115 @@ def render(obj):
 
     # print(actuators)
 
-    for i in range(400):
-        mujoco.mj_step(model, data)
+    # for i in range(400):
+    #     mujoco.mj_step(model, data)
+    if vis:
+        time.sleep(1)
 
-    time.sleep(1)
+    max_dist = 0
 
-    for i in range(10000):
+    # print(data.xpos)
+
+    for i in range(NUM_SIMULATION_ITERATIONS):
         if viewer.is_alive:
             # Currently clock-based movement
-            if i % 300 == 0:
-                data.ctrl[:actuators] = [5]
-                print(data.ctrl)
-            elif i % 300 == 150:
-                data.ctrl[:actuators] = [-5]
-            # print(data.ctrl)
+            # if i % 300 == 0:
+            #     data.ctrl[:actuators] = [5]
+                
+            # elif i % 300 == 150:
+            #     data.ctrl[:actuators] = [-5]
+            max_dist = max(get_pos(data.xpos), max_dist)
+            
             mujoco.mj_step(model, data)
-            viewer.render()
+            if vis:
+                viewer.render()
         else:
             break
 
-
+    
     viewer.close()
 
+    return max_dist
 
-def make_random(number):
+
+
+
+def make_random(number, generations):
+
+    models = np.array([])
+    scores = np.array([])
     for _ in range(number):
-        base = Node([make_random_body()], [Joint("free")], [], "base", [])
-        
+        base = Node([make_random_body([0, 0, 0, 1])], [Joint("free")], [], "base", [])
+        # base = bad_model
+        # So the creatures don't take off by starting underground
+        base.bodies[0].pos[2] += 1
+        print(str(_ / number * 100) + "%")
         make_random_children(base, 0)
 
 
 
         # times = random.randint(0, 4)
         # base.add_child(base, times)
+
+        score = render(base)
         
 
+        models = np.append(models, base)
 
-        render(base)
+        if score > 20:
+            scores = np.append(scores, 0)
+        else:
+            scores = np.append(scores, score)
+
+    
+    for _ in range(generations):
+        print("Scores (gen %s):" % (_))
+        print(scores)
+        
+        best_model = models[scores.argmax()]
+        high_score = scores.max()
+
+
+        models = [best_model]
+        for i in range(number):
+            newmodel = best_model.mutate()
+            while newmodel == None:
+                # print("BAD MODEL")
+                newmodel = best_model.mutate()
+            models.append(newmodel)
+
+        scores = np.array([])
+
+        for i, model in enumerate(models):
+            
+            score = render(model)
+            if score - high_score > 20:
+                scores = np.append(scores, 0)
+            else:
+                scores = np.append(scores, score)
+
+            print(str(i / number * 100) + "%")
+
+
+    print("Here's the best model with score", scores.max())
+
+    render(best_model, True)
+
+    print(scores)
+
+    
+
+        
          
 
 def make_random_children(parent, level):
     if level < 3:
 
-        num = random.randint(2 - level, 4 - level)
+        num = random.randint(1 - level, 4 - level)
         num = num < 0 and 0 or num
 
         for i in range(num):
+            # body = make_random_body(parent.bodies[0].rgba)
             body = make_random_body()
             parent_size = parent.bodies[0].size
 
@@ -421,7 +429,7 @@ def make_random_children(parent, level):
                 body.pos = [x_coord, z_coord, y_coord]
 
 
-                joint = Joint("hinge", DIRECTIONS[random.randint(0, 2)], [0, 0, -body.size[2]], 5)
+                joint = Joint("hinge", DIRECTIONS[random.randint(0, 2)], [0, 0, -body.size[2]], random.randint(1, 5))
 
             if side == 1:
                 # FRONT
@@ -513,10 +521,37 @@ def make_random_children(parent, level):
         
 
 
-def make_random_body():
+def make_random_body(parent_color=None):
     dimensions = [random.random() * MAX_SEGMENT_LENGTH for i in range(3)]
-    return Body([0, 0, dimensions[2]], dimensions, [random.random(), random.random(), random.random(), 1])
+    if parent_color == None:
+        color = [random.random(), random.random(), random.random(), 1]
+    else:
+        color = [0, 0, 0, 1]
+        color[0] = parent_color[0] + 0.3
+        color[1] = parent_color[1] + 0.3
+        color[2] = parent_color[2] + 0.3
+
+    return Body([0, 0, dimensions[2]], dimensions, color)
 
 
-make_random(1)
 
+
+
+
+
+
+
+bad_model = Node(
+    [Body(
+        [0, 0, 0],
+        [0.000001, 0.0000001, 0.0000001],
+        [1, 1, 0, 1]
+    )],
+    [],
+    [],
+    "base",
+    []
+)
+
+
+make_random(10, 10)
