@@ -4,16 +4,29 @@ import numpy as np
 import time
 import random
 
+
+"""
+Sides:
+
+Up    : 0
+Front : 1
+Left  : 2
+Back  : 3
+Right : 4
+Down  : 5
+
+"""
+
 PI = np.pi
 MAX_SEGMENT_LENGTH = 0.3
 MUTATION_SCALE = 0.1
-NUM_SIMULATION_ITERATIONS = 3000
-
+NUM_SIMULATION_ITERATIONS = 10000
 DIRECTIONS = [
     [0, 0, 1],
     [0, 1, 0],
     [1, 0, 0]
 ]
+CHANCE_ADD_BODY = 0.20
 
 def add_elements(a, b):
     for i in range(len(a)):
@@ -24,6 +37,9 @@ def is_zero(l):
         if l[i] < 0.01:
             return True
     return False
+
+def get_pos(pos):
+    return np.max(np.apply_along_axis(np.linalg.norm, 1, pos))
 
 
 """
@@ -39,15 +55,42 @@ Clock-based movement
 
 Can overlap and cross into itself
 
+Need to move joints and stuff after changing the 
+
 """
 
+class Queue:
+    """
+    Standard queue, just wanted custom print messages
+    """
+    def __init__(self):
+        self.q = []
+
+    def append(self, thing):
+        self.q.append(thing)
+
+    def pop(self):
+        return self.q.pop(0)
+    
+    def __len__(self):
+        return len(self.q)
+    
+    def __str__(self):
+        string = "<Queue: ["
+        for i in self.q:
+            string += str(i) + ", "
+        string += "]>"
+        return string
+
 class Node:
-    def __init__(self, bodies, joints, children, name, recursions):
+    def __init__(self, bodies, joints, children, name, side, recursions):
         self.bodies = bodies
         self.joints = joints
         self.children = children
         self.name = name
+        self.side = side
         self.recursions = recursions
+        
 
     def __str__(self) -> str:
         string = """<mujoco>
@@ -142,7 +185,7 @@ class Node:
                 newjoints.append(newjoints)
                 
 
-        return Node(newbodies, newjoints, self.children[:], self.name + "_new", self.recursions[:])
+        return Node(newbodies, newjoints, self.children[:], self.name + "_new", self.side, self.recursions[:])
     
     def is_valid_joint(self, joint):
         xmax = self.bodies[0].size[0] / 2
@@ -166,6 +209,20 @@ class Node:
             joint.pos[2] = ymin
         if joint.pos[2] > ymax:
             joint.pos[2] = ymax
+
+        if self.side == 0:
+            # print(self.bodies[0].size)
+            joint.pos[2] = -self.bodies[0].size[2]
+        if self.side == 1:
+            joint.pos[0] = self.bodies[0].size[0]
+        if self.side == 2:
+            joint.pos[1] = self.bodies[0].size[1]
+        if self.side == 3:
+            joint.pos[2] = self.bodies[0].size[2]
+        if self.side == 4:
+            joint.pos[0] = -self.bodies[0].size[0]
+        if self.side == 5:
+            joint.pos[1] = -self.bodies[0].size[1]
 
         return joint
 
@@ -200,9 +257,13 @@ class Node:
             newchild = child.mutate()
             if newchild:
                 newchildren.append(newchild)
+        
+        if random.random() < CHANCE_ADD_BODY:
+            #add body
+            make_random_children(self, 1)
 
 
-        return Node(newbodies, newjoints, newchildren, self.name + "_new", self.recursions[:])
+        return Node(newbodies, newjoints, newchildren, self.name + "_new", self.side, self.recursions[:])
 
     def expand(self, tab):
         print(tab * "  " + self.data) # Visted
@@ -277,8 +338,7 @@ class Joint:
 
 
 
-def get_pos(pos):
-    return np.max(np.apply_along_axis(np.linalg.norm, 1, pos))
+
         
 
 def render(obj, vis = False):
@@ -292,7 +352,7 @@ def render(obj, vis = False):
     data = mujoco.MjData(model)
 
     # create the viewer object
-    viewer = mujoco_viewer.MujocoViewer(model, data)
+    
 
     #Get array of actuators
     actuators = model.nu
@@ -310,24 +370,37 @@ def render(obj, vis = False):
 
     # print(data.xpos)
 
-    for i in range(NUM_SIMULATION_ITERATIONS):
-        if viewer.is_alive:
-            # Currently clock-based movement
-            # if i % 300 == 0:
-            #     data.ctrl[:actuators] = [5]
+    if vis:
+        viewer = mujoco_viewer.MujocoViewer(model, data)
+        for i in range(NUM_SIMULATION_ITERATIONS):
+            if viewer.is_alive:
+                # Currently clock-based movement
+                if i % 300 == 0:
+                    data.ctrl[:actuators] = [5]
+                    
+                elif i % 300 == 150:
+                    data.ctrl[:actuators] = [-5]
+                max_dist = max(get_pos(data.xpos), max_dist)
                 
-            # elif i % 300 == 150:
-            #     data.ctrl[:actuators] = [-5]
-            max_dist = max(get_pos(data.xpos), max_dist)
-            
-            mujoco.mj_step(model, data)
-            if vis:
-                viewer.render()
-        else:
-            break
+                mujoco.mj_step(model, data)
+                if vis:
+                    viewer.render()
+            else:
+                break
 
     
-    viewer.close()
+        viewer.close()
+    
+    else:
+        for i in range(NUM_SIMULATION_ITERATIONS):
+            if i % 300 == 0:
+                data.ctrl[:actuators] = [5]
+                
+            elif i % 300 == 150:
+                data.ctrl[:actuators] = [-5]
+            max_dist = max(get_pos(data.xpos), max_dist)
+
+            mujoco.mj_step(model, data)
 
     return max_dist
 
@@ -339,7 +412,7 @@ def make_random(number, generations):
     models = np.array([])
     scores = np.array([])
     for _ in range(number):
-        base = Node([make_random_body([0, 0, 0, 1])], [Joint("free")], [], "base", [])
+        base = Node([make_random_body([0, 0, 0, 1])], [Joint("free")], [], "base", 0, [])
         # base = bad_model
         # So the creatures don't take off by starting underground
         base.bodies[0].pos[2] += 1
@@ -387,8 +460,8 @@ def make_random(number, generations):
                 scores = np.append(scores, 0)
             else:
                 scores = np.append(scores, score)
-
-            print(str(i / number * 100) + "%")
+            if (i / number * 100) % 10 == 0:
+                print(str(i / number * 100) + "%")
 
 
     print("Here's the best model with score", scores.max())
@@ -510,7 +583,7 @@ def make_random_children(parent, level):
 
                 joint = Joint("hinge", DIRECTIONS[random.randint(0, 2)], [0, 0, -body.size[2]], 5)
 
-            child = Node([body], [joint], [], "limb_" + parent.name + "_" + str(i), [])
+            child = Node([body], [joint], [], "limb_" + parent.name + "_" + str(i), side, [])
 
             make_random_children(child, level + 1)
 
@@ -539,19 +612,36 @@ def make_random_body(parent_color=None):
 
 
 
-
+main_side = 0.3
+sub_side = 0.2
 
 bad_model = Node(
     [Body(
-        [0, 0, 0],
-        [0.000001, 0.0000001, 0.0000001],
+        [0, 0, 1],
+        [main_side, main_side, main_side],
         [1, 1, 0, 1]
     )],
-    [],
-    [],
+    [Joint("free")],
+    [Node(
+        [Body(
+            [0, 0, main_side + sub_side],
+            [sub_side, sub_side, sub_side],
+            [1, 0, 1, 1]
+        )],
+        [Joint("hinge", [0, 1, 0], [0, 0, -sub_side])],
+        [],
+        "arm",
+        0,
+        []
+    )],
     "base",
+    0,
     []
 )
 
 
-make_random(10, 10)
+make_random(1, 10)
+
+# render(bad_model, True)
+
+# render(bad_model.mutate(), True)
