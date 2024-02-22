@@ -3,32 +3,42 @@
 <worldbody>
 <light diffuse=".5 .5 .5" pos="0 0 2" dir="0 -1 0"/>
 <geom type="plane" size="20 20 0.1" rgba="0.8 0.8 0.8 1"/>
-<body name = "base0" pos = "0 0 1.2232851488841479">
-<geom type = "box" size = "0.11341535325259047 0.1466383679113061 0.22328514888414797" rgba = "0.3 0.3 0.3 1"/>
+<body name = "base0" pos = "0 0 1.1033836510246118">
+<geom type = "box" size = "0.05696241034908378 0.26469217275741785 0.1033836510246118" rgba = "0.3 0.3 0.3 1"/>
 <joint name = "jbase" type = "free" axis = "0 1 0" pos = "0 0 0"/>
-<body name = "limb_base_00" pos = "-0.275694044264864 0.022742799701064072 -0.07784688348583041">
-<geom type = "box" size = "0.1622786910122735 0.011120011477672886 0.240016273816482" rgba = "0.9095735509817408 0.07777182260872761 0.8422425473591865 1"/>
-<joint name = "jlimb_base_0" type = "hinge" axis = "0 0 1" pos = "0.1622786910122735 0 0"/>
-<body name = "limb_limb_base_0_00" pos = "-0.26256869525101556 0.07774133696793532 0.1598757475736801">
-<geom type = "box" size = "0.1002900042387421 0.1645879624721084 0.1550036573916251" rgba = "0.15060565618519672 0.05825702949955114 0.0007472435274801237 1"/>
-<joint name = "jlimb_limb_base_0_0" type = "hinge" axis = "0 1 0" pos = "0.1002900042387421 0 0"/>
-<body name = "limb_limb_base_0_10" pos = "0.0525472325944719 0.1272777702668944 -0.037386585428777985">
-<geom type = "box" size = "0.10118131368056531 0.11615775878922152 0.10419036689708217" rgba = "0.583225364235599 0.3809597812105624 0.8523948018712862 1"/>
-<joint name = "jlimb_limb_base_0_1" type = "hinge" axis = "0 1 0" pos = "0 -0.11615775878922152 0"/>
-<body name = "limb_limb_limb_base_0_1_00" pos = "0.0797581249706598 -0.4083119667663266 0.15357199748841982">
-<geom type = "box" size = "0.13933556602282052 0.29215420797710506 0.25498046336958846" rgba = "0.4454256877548809 0.1216105158218429 0.16612481999382778 1"/>
-<joint name = "jlimb_limb_limb_base_0_1_0" type = "hinge" axis = "1 0 0" pos = "0 0.29215420797710506 0"/>
+<body name = "limb_base_00" pos = "0.03356379337354388 -0.02270189562798094 0.11745420014517421">
+<geom type = "box" size = "0.04005542541659117 0.006810011698871454 0.014070549120562402" rgba = "0.9734502257014505 0.7866519060132889 0.7485419106952605 1"/>
+<joint name = "jlimb_base_0" type = "hinge" axis = "0 1 0" pos = "0 0 -0.014070549120562402"/>
+<body name = "limb_limb_base_0_00" pos = "0.1691936989865233 0.11723059904061073 -0.03961112911846756">
+<geom type = "box" size = "0.12913827356993215 0.23967255087958622 0.13430223406173936" rgba = "0.17457527984371635 0.6387534569116355 0.9980022100299186 1"/>
+<joint name = "jlimb_limb_base_0_0" type = "hinge" axis = "1 0 0" pos = "-0.12913827356993215 0 0"/>
+<body name = "limb_limb_limb_base_0_0_00" pos = "0.07752062688863055 0.3534648044804702 0.14044059605513454">
+<geom type = "box" size = "0.09346804190541172 0.11379225360088396 0.220500191399125" rgba = "0.034135081131990375 0.06322643573308995 0.6878582954703708 1"/>
+<joint name = "jlimb_limb_limb_base_0_0_0" type = "hinge" axis = "1 0 0" pos = "0 -0.11379225360088396 0"/>
+</body>
+</body>
+<body name = "limb_limb_base_0_10" pos = "0.10550042104757122 -0.28643101904544394 0.050044998944647534">
+<geom type = "box" size = "0.26946390049891233 0.27962100734657247 0.19091603406303975" rgba = "0.15835729553963984 0.4470787312799931 0.2985233964608096 1"/>
+<joint name = "jlimb_limb_base_0_1" type = "hinge" axis = "0 0 1" pos = "0 0.27962100734657247 0"/>
+<body name = "limb_limb_limb_base_0_1_00" pos = "-0.1496653321276376 -0.5266080167264073 -0.05921154462328606">
+<geom type = "box" size = "0.0516114383551881 0.24698700937983492 0.0565297251470134" rgba = "0.809847508810774 0.8128151759141647 0.306979130313225 1"/>
+<joint name = "jlimb_limb_limb_base_0_1_0" type = "hinge" axis = "1 0 0" pos = "0 0.24698700937983492 0"/>
 </body>
 </body>
 </body>
+<body name = "limb_base_10" pos = "0.03558406289734288 -0.29723367507768367 -0.09077786732622686">
+<geom type = "box" size = "0.14543465613220652 0.0325415023202658 0.2701886515438885" rgba = "0.06676569242638974 0.4471592532593228 0.0859102896962799 1"/>
+<joint name = "jlimb_base_1" type = "hinge" axis = "1 0 0" pos = "0 0.0325415023202658 0"/>
 </body>
 </body>
 </worldbody>
 <actuator>
 <motor name = "mbase" joint = "jbase" gear = "1" ctrllimited = "true" ctrlrange = "-1 1"/>
-<motor name = "mlimb_base_0" joint = "jlimb_base_0" gear = "1" ctrllimited = "true" ctrlrange = "-1 1"/>
-<motor name = "mlimb_limb_base_0_0" joint = "jlimb_limb_base_0_0" gear = "3" ctrllimited = "true" ctrlrange = "-3 3"/>
-<motor name = "mlimb_limb_base_0_1" joint = "jlimb_limb_base_0_1" gear = "3" ctrllimited = "true" ctrlrange = "-3 3"/>
-<motor name = "mlimb_limb_limb_base_0_1_0" joint = "jlimb_limb_limb_base_0_1_0" gear = "4" ctrllimited = "true" ctrlrange = "-4 4"/>
+<motor name = "mlimb_base_0" joint = "jlimb_base_0" gear = "5" ctrllimited = "true" ctrlrange = "-5 5"/>
+<motor name = "mlimb_limb_base_0_0" joint = "jlimb_limb_base_0_0" gear = "5" ctrllimited = "true" ctrlrange = "-5 5"/>
+<motor name = "mlimb_limb_limb_base_0_0_0" joint = "jlimb_limb_limb_base_0_0_0" gear = "5" ctrllimited = "true" ctrlrange = "-5 5"/>
+<motor name = "mlimb_limb_base_0_1" joint = "jlimb_limb_base_0_1" gear = "5" ctrllimited = "true" ctrlrange = "-5 5"/>
+<motor name = "mlimb_limb_limb_base_0_1_0" joint = "jlimb_limb_limb_base_0_1_0" gear = "1" ctrllimited = "true" ctrlrange = "-1 1"/>
+<motor name = "mlimb_base_1" joint = "jlimb_base_1" gear = "5" ctrllimited = "true" ctrlrange = "-5 5"/>
 </actuator>
 </mujoco>

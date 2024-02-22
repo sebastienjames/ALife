@@ -114,7 +114,7 @@ class Graph:
         for child in self.graph[name]:
             f, l, m = self.dfs(child.dest)
             first += f
-            last = l + last
+            first += l
             motors += m
         
         return (first, last, motors)
@@ -138,44 +138,6 @@ class Graph:
         output += f
         last = l + last
         motors += m
-
-        # while len(q) > 0:
-        #     next = q.pop()
-
-        #     if type(next) == str:
-        #         print("     ", next)
-        #         # output += last
-        #         # last = ""
-        #         continue
-        #     else:
-        #         print("E", next.dest)
-
-        #     # Not a recursive node
-        #     if next.limit == -1:
-        #         f, l, m = self.vertex_data[next.dest].to_string()
-        #         output += f
-        #         last = l + last
-        #         motors += m
-        #         for child in self.graph[next.dest]:
-        #             q.append(child.copy())
-        #         q.append(next.dest)
-
-        #     # Is a recursive node
-        #     if next.limit > 0:
-        #         f, l, m = self.vertex_data[next.dest].to_string()
-        #         output += f
-        #         last = l + last
-        #         motors += m
-        #         for child in self.graph[next.dest]:
-        #             newchild = child.copy()
-        #             if newchild.dest == next.dest:
-        #                 newchild.limit = next.limit - 1
-        #                 self.vertex_data[next.dest].name += "_rec"
-        #                 q.append(newchild)
-        #             elif newchild.limit == -1:
-        #                 self.vertex_data[next.dest].name += "_rec"
-        #                 q.append(newchild)
-        #         q.append(next.dest)
         
         output += last
         output += "</worldbody>\n<actuator>\n"
@@ -183,6 +145,9 @@ class Graph:
         output += motors
         
         output += "</actuator>\n</mujoco>"
+
+        print(output)
+        print(self.graph)
         return output
 
 
@@ -226,199 +191,6 @@ class Edge:
     
     def __str__(self):
         return "<Edge to " + self.dest + ", limit:" + str(self.limit) + ">"
-
-class Node:
-    def __init__(self, bodies, joints, children, name, side, recursions):
-        self.bodies = bodies
-        self.joints = joints
-        self.children = children
-        self.name = name
-        self.side = side
-        self.recursions = recursions
-        
-
-    def __str__(self) -> str:
-        string = """
-<mujoco>
- <worldbody>
- <light diffuse=".5 .5 .5" pos="0 0 2" dir="0 -1 0"/>
- <geom type="plane" size="10 10 0.1" rgba="0 0 0.9 1"/>
- """
-
-        body, j = self.traverse()
-
-        string += body
-
-        string += "</worldbody>\n<actuator>\n"
-
-        for e in j:
-            string += e[1]
-        
-        string += "</actuator>\n</mujoco>"
-
-        return string
-
-
-
-    
-    def traverse(self):
-        string = ""
-        
-        string += self.get_body()
-
-        j = self.get_joints()
-
-        for e in j:
-            string += e[0]
-
-        
-        for child in self.children:
-            s, k = child.traverse()
-            j += k
-            string += s
-
-        string += "</body>\n"
-
-        
-
-        return (string, j)
-        
-    
-    def get_body(self):
-        string = ""
-        for body in self.bodies:
-            string += body.traverse(self.name)
-        return string
-    
-    def get_joints(self):
-        j = []
-
-        for name_ext, joint in enumerate(self.joints):
-            j.append(joint.traverse(self.name + "v" + str(name_ext)))
-
-        return j
-    
-    def add_child(self, other, times = -1):
-        # -1 if infinite (only for non-recursive nodes)
-        # otherwise times is for the number of times this child should be recursed on
-        if other == self:
-            if times == -1:
-                raise RecursionError
-            else:
-                child = self.copy()
-                print("ME")
-                # Necessary for multiple of the recursive nodes
-                # for x in range(len(child.children)):
-                #     if child.children[x] == self:
-                #         child.children[x] == child
-                #         child.recursions[x] -= 1 # Check
-
-                if times > 1:
-                    child.add_child(child, times - 1)
-
-                self.children.append(child)
-                self.recursions.append(times)
-        else:
-            self.children.append(other)
-            self.recursions.append(times)
-    
-    def copy(self):
-        newbodies = self.bodies[:]
-        newjoints = []
-
-        for joint in self.joints:
-            newjoint = joint.copy()
-            if newjoint:
-                newjoints.append(newjoints)
-                
-
-        return Node(newbodies, newjoints, self.children[:], self.name + "_new", self.side, self.recursions[:])
-    
-    def is_valid_joint(self, joint):
-        xmax = self.bodies[0].size[0] / 2
-        xmin = -xmax
-
-        zmax = self.bodies[0].size[1] / 2
-        zmin = -zmax
-
-        ymax = self.bodies[0].size[2] / 2
-        ymin = -ymax
-
-        if joint.pos[0] < xmin:
-            joint.pos[0] = xmin
-        if joint.pos[0] > xmax:
-            joint.pos[0] = xmax
-        if joint.pos[1] < zmin:
-            joint.pos[1] = zmin
-        if joint.pos[1] > zmax:
-            joint.pos[1] = zmax
-        if joint.pos[2] < ymin:
-            joint.pos[2] = ymin
-        if joint.pos[2] > ymax:
-            joint.pos[2] = ymax
-
-        if self.side == 0:
-            # print(self.bodies[0].size)
-            joint.pos[2] = -self.bodies[0].size[2]
-        if self.side == 1:
-            joint.pos[0] = self.bodies[0].size[0]
-        if self.side == 2:
-            joint.pos[1] = self.bodies[0].size[1]
-        if self.side == 3:
-            joint.pos[2] = self.bodies[0].size[2]
-        if self.side == 4:
-            joint.pos[0] = -self.bodies[0].size[0]
-        if self.side == 5:
-            joint.pos[1] = -self.bodies[0].size[1]
-
-        return joint
-
-
-    def mutate(self):
-        newbodies = []
-        
-        for body in self.bodies:
-            newbody = body.mutate()
-            if newbody:
-                newbodies.append(newbody)
-            else:
-                # The body has atrophied, so remove all children
-                # print(self.name)
-                return None
-
-        newjoints = []
-
-        for joint in self.joints:
-            newjoint = joint.mutate()
-            if newjoint:
-
-                newjoint = self.is_valid_joint(newjoint)
-
-                newjoints.append(newjoint)
-            else:
-                newjoints.append(joint)
-
-        newchildren = []
-
-        for child in self.children:
-            newchild = child.mutate()
-            if newchild:
-                newchildren.append(newchild)
-        
-        if random.random() < CHANCE_ADD_BODY:
-            #add body
-            make_random_children(self, 1)
-
-
-        return Node(newbodies, newjoints, newchildren, self.name + "_new", self.side, self.recursions[:])
-
-    def expand(self, tab):
-        print(tab * "  " + self.data) # Visted
-        for i in range(len(self.children)):
-            if self.recursions[i] != 0:
-                self.recursions[i] -= 1
-                self.children[i].expand(tab + 1)
-    
 
 
 class Body:
