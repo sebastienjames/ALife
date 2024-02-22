@@ -3,7 +3,7 @@ import mujoco_viewer
 import numpy as np
 import time
 import random
-
+import xml.etree.ElementTree as ET
 
 """
 Sides:
@@ -27,6 +27,7 @@ DIRECTIONS = [
     [1, 0, 0]
 ]
 CHANCE_ADD_BODY = 0.20
+GLOBAL_ID = 10000
 
 def add_elements(a, b):
     for i in range(len(a)):
@@ -46,22 +47,21 @@ def get_pos(pos):
 
 LIMITS:
 
-RECURSIONS NOT USED
-
-Node can only have one recursive pointer
-Node.recursions are unused (for now)
+RECURSIONS NOT USED, BUT ARE IMPLEMENTED
 
 Clock-based movement
 
 Can overlap and cross into itself
 
-Need to move joints and stuff after changing the 
+Need to move joints and stuff after mutating
+
+Only uses one body / joint
 
 """
 
-class Queue:
+class Stack:
     """
-    Standard queue, just wanted custom print messages
+    Standard stack, just wanted custom print messages
     """
     def __init__(self):
         self.q = []
@@ -81,6 +81,151 @@ class Queue:
             string += str(i) + ", "
         string += "]>"
         return string
+    
+
+class Graph:
+    def __init__(self):
+        self.graph = {}
+        self.vertex_data = {}
+
+    def add_vertex(self, data):
+        if data.name in self.graph:
+            raise NameError(data.name + " already in graph")
+        self.graph[data.name] = []
+        self.vertex_data[data.name] = data
+
+    def add_edge(self, src, dest, limit=-1):
+        if src == dest:
+            assert limit > 0, "Recursive edge needs a limit"
+
+        self.graph[src].append(Edge(dest, limit))
+
+
+    #recursion
+        
+    def dfs(self, name):
+
+        f, l, m = self.vertex_data[name].to_string()
+
+        first = f
+        last = l
+        motors = m
+
+        for child in self.graph[name]:
+            f, l, m = self.dfs(child.dest)
+            first += f
+            last = l + last
+            motors += m
+        
+        return (first, last, motors)
+
+
+
+    def traverse(self, base_name):
+        output = """
+<mujoco>
+<worldbody>
+<light diffuse=".5 .5 .5" pos="0 0 2" dir="0 -1 0"/>
+<geom type="plane" size="20 20 0.1" rgba="0.8 0.8 0.8 1"/>
+"""
+        last = ""
+        motors = ""
+
+        f, l, m = self.dfs(base_name)
+
+        
+
+        output += f
+        last = l + last
+        motors += m
+
+        # while len(q) > 0:
+        #     next = q.pop()
+
+        #     if type(next) == str:
+        #         print("     ", next)
+        #         # output += last
+        #         # last = ""
+        #         continue
+        #     else:
+        #         print("E", next.dest)
+
+        #     # Not a recursive node
+        #     if next.limit == -1:
+        #         f, l, m = self.vertex_data[next.dest].to_string()
+        #         output += f
+        #         last = l + last
+        #         motors += m
+        #         for child in self.graph[next.dest]:
+        #             q.append(child.copy())
+        #         q.append(next.dest)
+
+        #     # Is a recursive node
+        #     if next.limit > 0:
+        #         f, l, m = self.vertex_data[next.dest].to_string()
+        #         output += f
+        #         last = l + last
+        #         motors += m
+        #         for child in self.graph[next.dest]:
+        #             newchild = child.copy()
+        #             if newchild.dest == next.dest:
+        #                 newchild.limit = next.limit - 1
+        #                 self.vertex_data[next.dest].name += "_rec"
+        #                 q.append(newchild)
+        #             elif newchild.limit == -1:
+        #                 self.vertex_data[next.dest].name += "_rec"
+        #                 q.append(newchild)
+        #         q.append(next.dest)
+        
+        output += last
+        output += "</worldbody>\n<actuator>\n"
+
+        output += motors
+        
+        output += "</actuator>\n</mujoco>"
+        return output
+
+
+
+class Vertex:
+    def __init__(self, bodies, joints, name, side):
+        self.bodies = bodies
+        self.joints = joints
+        self.name = name
+        self.side = side
+
+
+
+    def to_string(self):
+        fstring = ""
+        lstring = ""
+        motors = ""
+
+        fstring += self.bodies[0].traverse(self.name + "0")
+
+        for joint in self.joints:
+            j, m = joint.traverse(self.name)
+            fstring += j
+            motors += m
+
+        for i in range(1, len(self.bodies)):
+            fstring += self.bodies[i].traverse(self.name + str(i))
+        
+        for i in range(len(self.bodies)):
+            lstring = "</body>\n" + lstring
+
+        return (fstring, lstring, motors)
+
+class Edge:
+    def __init__(self, dest, limit):
+        self.dest = dest
+        self.limit = limit
+
+    def copy(self):
+        return Edge(self.dest, self.limit)
+    
+    def __str__(self):
+        return "<Edge to " + self.dest + ", limit:" + str(self.limit) + ">"
 
 class Node:
     def __init__(self, bodies, joints, children, name, side, recursions):
@@ -93,10 +238,12 @@ class Node:
         
 
     def __str__(self) -> str:
-        string = """<mujoco>
-              <worldbody>
-              <light diffuse=".5 .5 .5" pos="0 0 2" dir="0 -1 0"/>
-              <geom type="plane" size="10 10 0.1" rgba="0 0 0.9 1"/>"""
+        string = """
+<mujoco>
+ <worldbody>
+ <light diffuse=".5 .5 .5" pos="0 0 2" dir="0 -1 0"/>
+ <geom type="plane" size="10 10 0.1" rgba="0 0 0.9 1"/>
+ """
 
         body, j = self.traverse()
 
@@ -284,7 +431,7 @@ class Body:
 
     def traverse(self, name):
         string = "<body name = \"" + name + "\" pos = \"" + " ".join(map(str, self.pos)) + "\">\n"
-        string += "<geom type = \"" + self.kind + "\" size = \"" + " ".join(map(str, self.size)) + "\" rgba = \"" + " ".join(map(str, self.rgba)) + "\"/>"
+        string += "<geom type = \"" + self.kind + "\" size = \"" + " ".join(map(str, self.size)) + "\" rgba = \"" + " ".join(map(str, self.rgba)) + "\"/>\n"
         return string
     
     def copy(self, offset = [0, 0, 0]):
@@ -343,7 +490,7 @@ class Joint:
 
 def render(obj, vis = False):
 
-    xml = str(obj)
+    xml = obj
 
     with open("creature.xml", "w+") as f:
         f.write(xml)
@@ -411,20 +558,25 @@ def make_random(number, generations):
 
     models = np.array([])
     scores = np.array([])
+    
     for _ in range(number):
-        base = Node([make_random_body([0, 0, 0, 1])], [Joint("free")], [], "base", 0, [])
+        creature = Graph()
+        base = Vertex([make_random_body([0, 0, 0, 1])], [Joint("free")], "base", 0)
+        creature.add_vertex(base)
         # base = bad_model
         # So the creatures don't take off by starting underground
         base.bodies[0].pos[2] += 1
+
         print(str(_ / number * 100) + "%")
-        make_random_children(base, 0)
+
+        make_random_children(base, 0, creature)
 
 
 
         # times = random.randint(0, 4)
         # base.add_child(base, times)
 
-        score = render(base)
+        score = render(creature.traverse(base.name), True)
         
 
         models = np.append(models, base)
@@ -434,51 +586,52 @@ def make_random(number, generations):
         else:
             scores = np.append(scores, score)
 
-    
-    for _ in range(generations):
-        print("Scores (gen %s):" % (_))
-        print(scores)
+    # EVOLUTION!
+    # for _ in range(generations):
+    #     print("Scores (gen %s):" % (_))
+    #     print(scores)
         
-        best_model = models[scores.argmax()]
-        high_score = scores.max()
+    #     best_model = models[scores.argmax()]
+    #     high_score = scores.max()
 
 
-        models = [best_model]
-        for i in range(number):
-            newmodel = best_model.mutate()
-            while newmodel == None:
-                # print("BAD MODEL")
-                newmodel = best_model.mutate()
-            models.append(newmodel)
+    #     models = [best_model]
+    #     for i in range(number):
+    #         newmodel = best_model.mutate()
+    #         while newmodel == None:
+    #             # print("BAD MODEL")
+    #             newmodel = best_model.mutate()
+    #         models.append(newmodel)
 
-        scores = np.array([])
+    #     scores = np.array([])
 
-        for i, model in enumerate(models):
+    #     for i, model in enumerate(models):
             
-            score = render(model)
-            if score - high_score > 20:
-                scores = np.append(scores, 0)
-            else:
-                scores = np.append(scores, score)
-            if (i / number * 100) % 10 == 0:
-                print(str(i / number * 100) + "%")
+    #         score = render(model)
+    #         if score - high_score > 20:
+    #             scores = np.append(scores, 0)
+    #         else:
+    #             scores = np.append(scores, score)
+    #         if (i / number * 100) % 10 == 0:
+    #             print(str(i / number * 100) + "%")
 
 
-    print("Here's the best model with score", scores.max())
+    # print("Here's the best model with score", scores.max())
 
-    render(best_model, True)
+    # render(best_model, True)
 
-    print(scores)
+    # print(scores)
 
     
 
         
          
 
-def make_random_children(parent, level):
+def make_random_children(parent, level: int, graph: Graph):
     if level < 3:
 
-        num = random.randint(1 - level, 4 - level)
+        num = random.randint(1 - level, 3 - level)
+        # num = 2
         num = num < 0 and 0 or num
 
         for i in range(num):
@@ -517,7 +670,7 @@ def make_random_children(parent, level):
                 body.pos = [x_coord, z_coord, y_coord]
 
 
-                joint = Joint("hinge", DIRECTIONS[random.randint(0, 2)], [0, body.size[1], 0], 5)
+                joint = Joint("hinge", DIRECTIONS[random.randint(0, 2)], [0, body.size[1], 0], random.randint(1, 5))
 
             if side == 2:
                 # LEFT
@@ -534,7 +687,7 @@ def make_random_children(parent, level):
                 body.pos = [x_coord, z_coord, y_coord]
 
 
-                joint = Joint("hinge", DIRECTIONS[random.randint(0, 2)], [body.size[0], 0, 0], 5)
+                joint = Joint("hinge", DIRECTIONS[random.randint(0, 2)], [body.size[0], 0, 0], random.randint(1, 5))
 
             if side == 3:
                 # BACK
@@ -549,7 +702,7 @@ def make_random_children(parent, level):
                 body.pos = [x_coord, z_coord, y_coord]
 
 
-                joint = Joint("hinge", DIRECTIONS[random.randint(0, 2)], [0, -body.size[1], 0], 5)
+                joint = Joint("hinge", DIRECTIONS[random.randint(0, 2)], [0, -body.size[1], 0], random.randint(1, 5))
 
             if side == 4:
                 # RIGHT
@@ -566,7 +719,7 @@ def make_random_children(parent, level):
                 body.pos = [x_coord, z_coord, y_coord]
 
 
-                joint = Joint("hinge", DIRECTIONS[random.randint(0, 2)], [-body.size[0], 0, 0], 5)
+                joint = Joint("hinge", DIRECTIONS[random.randint(0, 2)], [-body.size[0], 0, 0], random.randint(1, 5))
 
             if side == 5:
                 # DOWN
@@ -581,13 +734,15 @@ def make_random_children(parent, level):
                 body.pos = [x_coord, z_coord, y_coord]
 
 
-                joint = Joint("hinge", DIRECTIONS[random.randint(0, 2)], [0, 0, -body.size[2]], 5)
+                joint = Joint("hinge", DIRECTIONS[random.randint(0, 2)], [0, 0, -body.size[2]], random.randint(1, 5))
 
-            child = Node([body], [joint], [], "limb_" + parent.name + "_" + str(i), side, [])
 
-            make_random_children(child, level + 1)
+            child = Vertex([body], [joint], "limb_" + parent.name + "_" + str(i), side)
+            graph.add_vertex(child)
+            graph.add_edge(parent.name, child.name)
+            make_random_children(child, level + 1, graph)
 
-            parent.add_child(child)
+            # print(graph.traverse(parent.name))
 
 
 
@@ -615,30 +770,40 @@ def make_random_body(parent_color=None):
 main_side = 0.3
 sub_side = 0.2
 
-bad_model = Node(
+graph_model = Graph()
+
+graph_model.add_vertex(Vertex(
     [Body(
         [0, 0, 1],
         [main_side, main_side, main_side],
         [1, 1, 0, 1]
+    ),
+    Body(
+        [0, main_side * 2, 0],
+        [main_side, main_side, main_side],
+        [0, 1, 0, 1]
     )],
     [Joint("free")],
-    [Node(
-        [Body(
-            [0, 0, main_side + sub_side],
-            [sub_side, sub_side, sub_side],
-            [1, 0, 1, 1]
-        )],
-        [Joint("hinge", [0, 1, 0], [0, 0, -sub_side])],
-        [],
-        "arm",
-        0,
-        []
-    )],
-    "base",
-    0,
-    []
-)
+    "main",
+    0
+))
 
+graph_model.add_vertex(Vertex(
+    [Body(
+        [0, 0, main_side + sub_side],
+        [sub_side, sub_side, sub_side],
+        [1, 0, 1, 1]
+    )],
+    [Joint("hinge", [0, 1, 0], [0, 0, -sub_side])],
+    "arm",
+    0
+))
+
+graph_model.add_edge("main", "arm")
+
+# render(graph_model.traverse("main"), True)
+
+# graph_model.dfs("main")
 
 make_random(1, 10)
 
