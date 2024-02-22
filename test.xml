@@ -1,0 +1,20 @@
+<mujoco>
+<worldbody>
+<light diffuse=".5 .5 .5" pos="0 0 2" dir="0 -1 0"/>
+<geom type="plane" size="20 20 0.1" rgba="0.8 0.8 0.8 1"/>
+<body name = "main0" pos = "0 0 1">
+<geom type = "box" size = "0.3 0.3 0.3" rgba = "1 1 0 1"/>
+<joint name = "jmain" type = "free" axis = "0 1 0" pos = "0 0 0"/>
+<body name = "main1" pos = "0 0 2">
+<geom type = "box" size = "1 1 1" rgba = "0 1 0 1"/>
+<body name = "arm0" pos = "0 0 0.5">
+<geom type = "box" size = "0.2 0.2 0.2" rgba = "1 0 1 1"/>
+<joint name = "jarm" type = "hinge" axis = "0 1 0" pos = "0 0 -0.2"/>
+</body>
+</body>
+</body>
+</worldbody>
+<actuator>
+<motor name = "marm" joint = "jarm" gear = "1" ctrllimited = "true" ctrlrange = "-1 1"/>
+</actuator>
+</mujoco>
