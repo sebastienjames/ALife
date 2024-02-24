@@ -3,42 +3,32 @@
 <worldbody>
 <light diffuse=".5 .5 .5" pos="0 0 2" dir="0 -1 0"/>
 <geom type="plane" size="20 20 0.1" rgba="0.8 0.8 0.8 1"/>
-<body name = "base0" pos = "0 0 1.1033836510246118">
-<geom type = "box" size = "0.05696241034908378 0.26469217275741785 0.1033836510246118" rgba = "0.3 0.3 0.3 1"/>
-<joint name = "jbase" type = "free" axis = "0 1 0" pos = "0 0 0"/>
-<body name = "limb_base_00" pos = "0.03356379337354388 -0.02270189562798094 0.11745420014517421">
-<geom type = "box" size = "0.04005542541659117 0.006810011698871454 0.014070549120562402" rgba = "0.9734502257014505 0.7866519060132889 0.7485419106952605 1"/>
-<joint name = "jlimb_base_0" type = "hinge" axis = "0 1 0" pos = "0 0 -0.014070549120562402"/>
-<body name = "limb_limb_base_0_00" pos = "0.1691936989865233 0.11723059904061073 -0.03961112911846756">
-<geom type = "box" size = "0.12913827356993215 0.23967255087958622 0.13430223406173936" rgba = "0.17457527984371635 0.6387534569116355 0.9980022100299186 1"/>
-<joint name = "jlimb_limb_base_0_0" type = "hinge" axis = "1 0 0" pos = "-0.12913827356993215 0 0"/>
-<body name = "limb_limb_limb_base_0_0_00" pos = "0.07752062688863055 0.3534648044804702 0.14044059605513454">
-<geom type = "box" size = "0.09346804190541172 0.11379225360088396 0.220500191399125" rgba = "0.034135081131990375 0.06322643573308995 0.6878582954703708 1"/>
-<joint name = "jlimb_limb_limb_base_0_0_0" type = "hinge" axis = "1 0 0" pos = "0 -0.11379225360088396 0"/>
+<body name = "base_new_new_new_new0" pos = "0.05588096026823014 -0.033261968569213644 1.026972721589077">
+<geom type = "box" size = "0.04926943601255352 0.03376851213170162 0.12002593638346606" rgba = "0.3 0.3 0.3 1"/>
+<joint name = "jbase_new_new_new_new" type = "free" axis = "0 1 0" pos = "0 0 -0.12002593638346606"/>
+<body name = "limb_base_0_new_new_new_new0" pos = "-0.05790978217474455 -0.09562273360430937 0.12752743628909338">
+<geom type = "box" size = "0.09924998455712356 0.21993695556898457 0.17931772572604482" rgba = "0.38644104266266965 0.8193153465813626 0.141726141182838 1"/>
+<joint name = "jlimb_base_0_new_new_new_new" type = "hinge" axis = "0 0 1" pos = "0.027086678694108076 -0.19560912282762402 -0.07762214283870708"/>
+<body name = "limb_limb_base_0_0_new_new_new_new0" pos = "0.3055550505088193 0.15520907284754443 0.1003874301759297">
+<geom type = "box" size = "0.3302046288434152 0.2715981268890886 0.29321605954781826" rgba = "0.39147649402927287 0.2097390937876067 0.532206807242542 1"/>
+<joint name = "jlimb_limb_base_0_0_new_new_new_new" type = "hinge" axis = "1 0 0" pos = "-0.29613908232751407 0.030035771251140944 -0.02195344257545962"/>
 </body>
 </body>
-<body name = "limb_limb_base_0_10" pos = "0.10550042104757122 -0.28643101904544394 0.050044998944647534">
-<geom type = "box" size = "0.26946390049891233 0.27962100734657247 0.19091603406303975" rgba = "0.15835729553963984 0.4470787312799931 0.2985233964608096 1"/>
-<joint name = "jlimb_limb_base_0_1" type = "hinge" axis = "0 0 1" pos = "0 0.27962100734657247 0"/>
-<body name = "limb_limb_limb_base_0_1_00" pos = "-0.1496653321276376 -0.5266080167264073 -0.05921154462328606">
-<geom type = "box" size = "0.0516114383551881 0.24698700937983492 0.0565297251470134" rgba = "0.809847508810774 0.8128151759141647 0.306979130313225 1"/>
-<joint name = "jlimb_limb_limb_base_0_1_0" type = "hinge" axis = "1 0 0" pos = "0 0.24698700937983492 0"/>
+<body name = "limb_base_1_new_new_new_new0" pos = "-0.05484812233419206 0.11093521095678748 0.42517022904442103">
+<geom type = "box" size = "0.2609287323415471 0.19851756929072836 0.35807255633882223" rgba = "0.1286278654289229 0.47413682189904105 0.6417214875229027 1"/>
+<joint name = "jlimb_base_1_new_new_new_new" type = "hinge" axis = "0 1 0" pos = "0.04274086724655903 0.09393728393079723 -0.33875947105623955"/>
+<body name = "limb_limb_base_1_0_new_new_new_new0" pos = "-0.05697368624094958 -0.1970975643991231 0.5288503427099852">
+<geom type = "box" size = "0.15697782892275083 0.18119445137684353 0.29870178695357175" rgba = "0.2263631166680592 0.97638490618588 0.25253284047695923 1"/>
+<joint name = "jlimb_limb_base_1_0_new_new_new_new" type = "hinge" axis = "1 0 0" pos = "-0.020312895215137957 0.06778792831073843 -0.25031190225626937"/>
 </body>
-</body>
-</body>
-<body name = "limb_base_10" pos = "0.03558406289734288 -0.29723367507768367 -0.09077786732622686">
-<geom type = "box" size = "0.14543465613220652 0.0325415023202658 0.2701886515438885" rgba = "0.06676569242638974 0.4471592532593228 0.0859102896962799 1"/>
-<joint name = "jlimb_base_1" type = "hinge" axis = "1 0 0" pos = "0 0.0325415023202658 0"/>
 </body>
 </body>
 </worldbody>
 <actuator>
-<motor name = "mbase" joint = "jbase" gear = "1" ctrllimited = "true" ctrlrange = "-1 1"/>
-<motor name = "mlimb_base_0" joint = "jlimb_base_0" gear = "5" ctrllimited = "true" ctrlrange = "-5 5"/>
-<motor name = "mlimb_limb_base_0_0" joint = "jlimb_limb_base_0_0" gear = "5" ctrllimited = "true" ctrlrange = "-5 5"/>
-<motor name = "mlimb_limb_limb_base_0_0_0" joint = "jlimb_limb_limb_base_0_0_0" gear = "5" ctrllimited = "true" ctrlrange = "-5 5"/>
-<motor name = "mlimb_limb_base_0_1" joint = "jlimb_limb_base_0_1" gear = "5" ctrllimited = "true" ctrlrange = "-5 5"/>
-<motor name = "mlimb_limb_limb_base_0_1_0" joint = "jlimb_limb_limb_base_0_1_0" gear = "1" ctrllimited = "true" ctrlrange = "-1 1"/>
-<motor name = "mlimb_base_1" joint = "jlimb_base_1" gear = "5" ctrllimited = "true" ctrlrange = "-5 5"/>
+<motor name = "mbase_new_new_new_new" joint = "jbase_new_new_new_new" gear = "1" ctrllimited = "true" ctrlrange = "-1 1"/>
+<motor name = "mlimb_base_0_new_new_new_new" joint = "jlimb_base_0_new_new_new_new" gear = "3" ctrllimited = "true" ctrlrange = "-3.0 3.0"/>
+<motor name = "mlimb_limb_base_0_0_new_new_new_new" joint = "jlimb_limb_base_0_0_new_new_new_new" gear = "5" ctrllimited = "true" ctrlrange = "-5.0 5.0"/>
+<motor name = "mlimb_base_1_new_new_new_new" joint = "jlimb_base_1_new_new_new_new" gear = "4" ctrllimited = "true" ctrlrange = "-4.0 4.0"/>
+<motor name = "mlimb_limb_base_1_0_new_new_new_new" joint = "jlimb_limb_base_1_0_new_new_new_new" gear = "5" ctrllimited = "true" ctrlrange = "-5.0 5.0"/>
 </actuator>
 </mujoco>
