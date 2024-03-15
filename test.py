@@ -25,7 +25,7 @@ max_dist = 0
 
 # print(data.xpos)
 
-for i in range(3000):
+for i in range(10000):
     if viewer.is_alive:
         # Currently clock-based movement
         if i % 300 == 0:
@@ -35,7 +35,6 @@ for i in range(3000):
             data.ctrl[:actuators] = [-5]
         
         mujoco.mj_step(model, data)
-
         viewer.render()
     else:
         break

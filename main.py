@@ -95,14 +95,14 @@ class Vertex:
 
         return (fstring, lstring, motors)
     
-    def is_valid_joint(self, joint):
-        xmax = self.bodies[0].size[0] / 2
+    def is_valid_joint(self, joint, body):
+        xmax = body.size[0] / 2
         xmin = -xmax
 
-        zmax = self.bodies[0].size[1] / 2
+        zmax = body.size[1] / 2
         zmin = -zmax
 
-        ymax = self.bodies[0].size[2] / 2
+        ymax = body.size[2] / 2
         ymin = -ymax
 
         if joint.pos[0] < xmin:
@@ -119,40 +119,69 @@ class Vertex:
             joint.pos[2] = ymax
 
         if self.side == 0:
-            # print(self.bodies[0].size)
-            joint.pos[2] = -self.bodies[0].size[2]
+            # print(body.size)
+            joint.pos[2] = -body.size[2]
         if self.side == 1:
-            joint.pos[0] = self.bodies[0].size[0]
+            joint.pos[0] = body.size[0]
         if self.side == 2:
-            joint.pos[1] = self.bodies[0].size[1]
+            joint.pos[1] = body.size[1]
         if self.side == 3:
-            joint.pos[2] = self.bodies[0].size[2]
+            joint.pos[2] = body.size[2]
         if self.side == 4:
-            joint.pos[0] = -self.bodies[0].size[0]
+            joint.pos[0] = -body.size[0]
         if self.side == 5:
-            joint.pos[1] = -self.bodies[0].size[1]
+            joint.pos[1] = -body.size[1]
 
         return joint
     
-    def mutate(self):
+    def fit_to(self, parent, newbody):
+        if parent is None:
+            return
+        
+        if self.side == 0:
+            newbody.pos[2] = parent.bodies[0].size[2] + newbody.size[2]
+            # print("Up")
+        elif self.side == 1:
+            newbody.pos[1] = parent.bodies[0].size[1] + newbody.size[1]
+            # print("Front")
+        elif self.side == 2:
+            newbody.pos[0] = parent.bodies[0].size[0] + newbody.size[0]
+            # print("Left")
+        elif self.side == 3:
+            newbody.pos[1] = - parent.bodies[0].size[1] - newbody.size[1]
+            # print("Back")
+        elif self.side == 4:
+            newbody.pos[0] = - parent.bodies[0].size[0] - newbody.size[0]
+            # print("Right")
+        else:
+            newbody.pos[2] = - parent.bodies[0].size[2] - newbody.size[2]
+            # print("Down")
+
+
+    def mutate(self, parent):
         newbodies = []
         
         for body in self.bodies:
             newbody = body.mutate()
             if newbody:
+                self.fit_to(parent, newbody)
                 newbodies.append(newbody)
+
             else:
                 # The body has atrophied, so remove all children
                 # print(self.name)
                 return None
+            
+        
 
         newjoints = []
 
         for joint in self.joints:
             newjoint = joint.mutate()
+            # print("NWEJOINT", newjoint.ctrlrange)
             if newjoint:
 
-                newjoint = self.is_valid_joint(newjoint)
+                newjoint = self.is_valid_joint(newjoint, newbody)
 
                 newjoints.append(newjoint)
             else:
@@ -181,7 +210,7 @@ class Graph:
     def __init__(self):
         self.graph = {}
         self.vertex_data = {}
-        self.base = None
+        self.base = None #name
 
     def add_vertex(self, data: Vertex):
 
@@ -231,8 +260,6 @@ class Graph:
         
         return (first, last, motors)
 
-
-
     def traverse(self, base_name):
         output = """
 <mujoco>
@@ -261,29 +288,30 @@ class Graph:
         # print(output)
         # print(self.graph)
         return output
-    def mutate(self, base_name):
+    
+    def mutate(self):
         newGraph = Graph()
         newGraph.graph = deepcopy(self.graph)
         newGraph.vertex_data = deepcopy(self.vertex_data)
         newGraph.base = self.base
 
-        self._mutate_helper(base_name, newGraph)
+        self._mutate_helper(self.base, newGraph, None)
 
         # print("LOKK")
         # newGraph.print_graph()
         return newGraph
         
     
-    def _mutate_helper(self, name, into):
+    def _mutate_helper(self, name, into, parent):
         # print("MUTATE HELPING", name)
-        mutated_body = self.vertex_data[name].mutate()
+        mutated_body = self.vertex_data[name].mutate(parent)
         while mutated_body == None and name == self.base:
             # print("CANT ATRPOHY INTO NOTHING")
-            mutated_body = self.vertex_data[name].mutate()
+            mutated_body = self.vertex_data[name].mutate(parent)
 
         if mutated_body == None:
             # print("deleting", name)
-            self.remove_vertex(name)
+            into.remove_vertex(name)
             return
         
         into.vertex_data[name] = mutated_body
@@ -293,7 +321,7 @@ class Graph:
         for child in self.graph[name]:
             # print("CHILD IS ", child)
             # print("DEST IS", child.dest)
-            self._mutate_helper(child.dest, into)
+            self._mutate_helper(child.dest, into, into.vertex_data[name])
         
         if random.random() < CHANCE_ADD_BODY:
             #add body
@@ -312,197 +340,6 @@ class Graph:
             print(k,":", v)
         print("------------------------------------")
 
-class Node:
-    def __init__(self, bodies, joints, children, name, side, recursions):
-        self.bodies = bodies
-        self.joints = joints
-        self.children = children
-        self.name = name
-        self.side = side
-        self.recursions = recursions
-        
-
-    def __str__(self) -> str:
-        string = """
-<mujoco>
- <worldbody>
- <light diffuse=".5 .5 .5" pos="0 0 2" dir="0 -1 0"/>
- <geom type="plane" size="10 10 0.1" rgba="0 0 0.9 1"/>
- """
-
-        body, j = self.traverse()
-
-        string += body
-
-        string += "</worldbody>\n<actuator>\n"
-
-        for e in j:
-            string += e[1]
-        
-        string += "</actuator>\n</mujoco>"
-
-        return string
-
-
-
-    
-    def traverse(self):
-        string = ""
-        
-        string += self.get_body()
-
-        j = self.get_joints()
-
-        for e in j:
-            string += e[0]
-
-        
-        for child in self.children:
-            s, k = child.traverse()
-            j += k
-            string += s
-
-        string += "</body>\n"
-
-        
-
-        return (string, j)
-        
-    
-    def get_body(self):
-        string = ""
-        for body in self.bodies:
-            string += body.traverse(self.name)
-        return string
-    
-    def get_joints(self):
-        j = []
-
-        for name_ext, joint in enumerate(self.joints):
-            j.append(joint.traverse(self.name + "v" + str(name_ext)))
-
-        return j
-    
-    def add_child(self, other, times = -1):
-        # -1 if infinite (only for non-recursive nodes)
-        # otherwise times is for the number of times this child should be recursed on
-        if other == self:
-            if times == -1:
-                raise RecursionError
-            else:
-                child = self.copy()
-                print("ME")
-                # Necessary for multiple of the recursive nodes
-                # for x in range(len(child.children)):
-                #     if child.children[x] == self:
-                #         child.children[x] == child
-                #         child.recursions[x] -= 1 # Check
-
-                if times > 1:
-                    child.add_child(child, times - 1)
-
-                self.children.append(child)
-                self.recursions.append(times)
-        else:
-            self.children.append(other)
-            self.recursions.append(times)
-    
-    def copy(self):
-        newbodies = self.bodies[:]
-        newjoints = []
-
-        for joint in self.joints:
-            newjoint = joint.copy()
-            if newjoint:
-                newjoints.append(newjoints)
-                
-
-        return Node(newbodies, newjoints, self.children[:], self.name + "_new", self.side, self.recursions[:])
-    
-    def is_valid_joint(self, joint):
-        xmax = self.bodies[0].size[0] / 2
-        xmin = -xmax
-
-        zmax = self.bodies[0].size[1] / 2
-        zmin = -zmax
-
-        ymax = self.bodies[0].size[2] / 2
-        ymin = -ymax
-
-        if joint.pos[0] < xmin:
-            joint.pos[0] = xmin
-        if joint.pos[0] > xmax:
-            joint.pos[0] = xmax
-        if joint.pos[1] < zmin:
-            joint.pos[1] = zmin
-        if joint.pos[1] > zmax:
-            joint.pos[1] = zmax
-        if joint.pos[2] < ymin:
-            joint.pos[2] = ymin
-        if joint.pos[2] > ymax:
-            joint.pos[2] = ymax
-
-        if self.side == 0:
-            # print(self.bodies[0].size)
-            joint.pos[2] = -self.bodies[0].size[2]
-        if self.side == 1:
-            joint.pos[0] = self.bodies[0].size[0]
-        if self.side == 2:
-            joint.pos[1] = self.bodies[0].size[1]
-        if self.side == 3:
-            joint.pos[2] = self.bodies[0].size[2]
-        if self.side == 4:
-            joint.pos[0] = -self.bodies[0].size[0]
-        if self.side == 5:
-            joint.pos[1] = -self.bodies[0].size[1]
-
-        return joint
-
-
-    def mutate(self):
-        newbodies = []
-        
-        for body in self.bodies:
-            newbody = body.mutate()
-            if newbody:
-                newbodies.append(newbody)
-            else:
-                # The body has atrophied, so remove all children
-                # print(self.name)
-                return None
-
-        newjoints = []
-
-        for joint in self.joints:
-            newjoint = joint.mutate()
-            if newjoint:
-
-                newjoint = self.is_valid_joint(newjoint)
-
-                newjoints.append(newjoint)
-            else:
-                newjoints.append(joint)
-
-        newchildren = []
-
-        for child in self.children:
-            newchild = child.mutate()
-            if newchild:
-                newchildren.append(newchild)
-        
-        if random.random() < CHANCE_ADD_BODY:
-            #add body
-            make_random_children(self, 1)
-
-
-        return Node(newbodies, newjoints, newchildren, self.name + "_new", self.side, self.recursions[:])
-
-    def expand(self, tab):
-        print(tab * "  " + self.data) # Visted
-        for i in range(len(self.children)):
-            if self.recursions[i] != 0:
-                self.recursions[i] -= 1
-                self.children[i].expand(tab + 1)
 
 class Body:
     def __init__(self, pos, size, rbga):
@@ -534,12 +371,15 @@ class Body:
             return newbody
 
 class Joint:
-    def __init__(self, kind, axis=[0, 1, 0], pos=[0, 0, 0], gear=1, ctrlrange=[-1, 1]) -> None:
+    def __init__(self, kind, axis=[0, 1, 0], pos=[0, 0, 0], cycle=[5, 5], gear=1, ctrlrange=[-1, 1]) -> None:
         self.kind = kind
         self.axis = axis
         self.pos = pos
         self.gear = gear
+        self.cycle = cycle
         self.ctrlrange = list(map(lambda x: x * self.gear, ctrlrange))
+        # print("HEREd", self.ctrlrange)
+        # print("ZA", ctrlrange, gear)
 
     def copy(self, offset=[0, 0, 0]):
         if self.kind != "free":
@@ -548,12 +388,14 @@ class Joint:
                 newpos[i] += offset[i]
 
             oldctrl = list(map(lambda x: x / self.gear, self.ctrlrange))
-            
-            return Joint(self.kind, self.axis, newpos, self.gear, oldctrl)
+            # print("OLD:", oldctrl)
+            return Joint(kind=self.kind, axis=self.axis, pos=newpos, gear=self.gear, ctrlrange=oldctrl)
         
     def mutate(self):
         newjoint = self.copy()
+        
         if newjoint:
+            # print(newjoint.ctrlrange)
             add_elements(newjoint.pos, [(random.random() - 0.5) * MUTATION_SCALE for i in range(3)])
 
             return newjoint
@@ -562,7 +404,8 @@ class Joint:
     
     
     def traverse(self, name):
-        joint = "<joint name = \"j" + name + "\" type = \"" + self.kind + "\" axis = \"" + " ".join(map(str, self.axis)) + "\" pos = \"" + " ".join(map(str, self.pos)) + "\"/>\n"
+        # print("LOOK", self.ctrlrange)
+        joint = "<joint name = \"j" + name + "\" type = \"" + self.kind + "\" axis = \"" + " ".join(map(str, self.axis)) + "\" pos = \"" + " ".join(map(str, self.pos)) + "\" limited = \"true\" range = \"-90 90\"/>\n"
         motor = "<motor name = \"m" + name + "\" joint = \"j" + name + "\" gear = \"" + str(self.gear) + "\" ctrllimited = \"true\" ctrlrange = \"" + " ".join(map(str, self.ctrlrange)) + "\"/>\n"
         return (joint, motor)
 
@@ -613,11 +456,16 @@ def render(obj: Graph, vis = False):
                     
                 elif i % 300 == 150:
                     data.ctrl[:actuators] = [-5]
-                max_dist = max(get_pos(data.xpos), max_dist)
+
+                if np.all(data.qacc < 1e5):
+                    max_dist = max(get_pos(data.xpos), max_dist)
+                else:
+                    return 0
+
                 
                 mujoco.mj_step(model, data)
-                if vis:
-                    viewer.render()
+                viewer.render()
+                    
             else:
                 break
 
@@ -662,15 +510,15 @@ def make_random(number, generations):
         # times = random.randint(0, 4)
         # base.add_child(base, times)
 
-        score = render(creature)
+        score = render(creature, True)
         
 
         models = np.append(models, creature)
 
-        if score > 20:
-            scores = np.append(scores, 0)
-        else:
-            scores = np.append(scores, score)
+        # if score > 20:
+        #     scores = np.append(scores, 0)
+        # else:
+        scores = np.append(scores, score)
 
     # EVOLUTION!
             
@@ -683,13 +531,15 @@ def make_random(number, generations):
 
 
         models = [best_model]
+        # best_model.print_graph()
         for i in range(number):
-            newmodel = best_model.mutate(best_model.base)
+            newmodel = best_model.mutate()
+            # best_model.print_ graph()
             while newmodel == None:
                 # print("BAD MODEL")
-                newmodel = best_model.mutate(best_model.base)
+                newmodel = best_model.mutate()
             models.append(newmodel)
-
+        # best_model.print_graph()
         scores = np.array([])
 
         for i, model in enumerate(models):
@@ -698,8 +548,7 @@ def make_random(number, generations):
                 scores = np.append(scores, 0)
             else:
                 scores = np.append(scores, score)
-            if (i / number * 100) % 10 == 0:
-                print(str(i / number * 100) + "%", end = "\n")
+            print(str(i / number * 100) + "%", end = "\r")
 
 
     print("Here's the best model with score", scores.max())
@@ -714,7 +563,7 @@ def make_random(number, generations):
          
 
 def make_random_children(parent, level: int, graph: Graph):
-    if level < 3:
+    if level < 4:
 
         num = random.randint(1 - level, 4 - level)
         # num = 2
@@ -882,24 +731,13 @@ graph_model.add_vertex(Vertex(
 
 graph_model.add_edge("main", "arm")
 
-if True:
+if False:
     n_creatures = int(input("How many creatures per generation?\n"))
     n_generations = int(input("How many generations?\n"))
 
     make_random(n_creatures, n_generations)
 else:
 
-
-
-
-    make_random(1, 10)
-
-    # render(graph_model.traverse("main"), True)
-
-    # graph_model.dfs("main")
-
-
-
-    # render(bad_model, True)
-
-    # render(bad_model.mutate(), True)
+    for i in range(5):
+        make_random(10, 1)
+    
